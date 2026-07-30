@@ -12,32 +12,32 @@ def engineer_features(df):
     
     # Financial features
     df.currency_rate = df.currency_rate.fillna(1.0)
-    df['goal_usd'] = df['goal'] * df.currency_rate
-    df['log_goal_usd'] = np.log1p(np.maximum(df['goal_usd'], 0))
-    df['log_goal'] = np.log1p(np.maximum(df['goal'], 0))
+    df['goal_usd'] = df.goal * df.currency_rate
+    df['log_goal_usd'] = np.log1p(np.maximum(df.goal_usd, 0))
+    df['log_goal'] = np.log1p(np.maximum(df.goal, 0))
     
     # Duration and ratios
-    df['launch_to_deadline_days_clean'] = np.maximum(df['launch_to_deadline_days'], 1)
-    df['create_to_launch_days_clean'] = np.maximum(df['create_to_launch_days'], 0)
+    df['launch_to_deadline_days_clean'] = np.maximum(df.launch_to_deadline_days, 1)
+    df['create_to_launch_days_clean'] = np.maximum(df.create_to_launch_days, 0)
     
-    df['goal_usd_per_day'] = df['goal_usd'] / df['launch_to_deadline_days_clean']
-    df['log_goal_usd_per_day'] = np.log1p(df['goal_usd_per_day'])
+    df['goal_usd_per_day'] = df.goal_usd / df.launch_to_deadline_days_clean
+    df['log_goal_usd_per_day'] = np.log1p(df.goal_usd_per_day)
     
     # Staff pick
-    df['staff_pick'] = df['staff_pick'].astype(int)
+    df.staff_pick = df.staff_pick.astype(int)
     
     # Text features from name
-    df['name_str'] = df['name'].fillna('').astype(str)
-    df['name_char_len'] = df['name_str'].apply(len)
-    df['name_word_count'] = df['name_str'].apply(lambda x: len(x.split()))
-    df['name_has_excl'] = df['name_str'].apply(lambda x: 1 if '!' in x else 0)
-    df['name_has_quest'] = df['name_str'].apply(lambda x: 1 if '?' in x else 0)
-    df['name_is_upper'] = df['name_str'].apply(lambda x: 1 if x.isupper() else 0)
+    df['name_str'] = df.name.fillna('').astype(str)
+    df['name_char_len'] = df.name_str.apply(len)
+    df['name_word_count'] = df.name_str.apply(lambda x: len(x.split()))
+    df['name_has_excl'] = df.name_str.apply(lambda x: 1 if '!' in x else 0)
+    df['name_has_quest'] = df.name_str.apply(lambda x: 1 if '?' in x else 0)
+    df['name_is_upper'] = df.name_str.apply(lambda x: 1 if x.isupper() else 0)
     
     # Fill NAs
-    df['category'] = df['category'].fillna('Missing')
-    df['name_len'] = df['name_len'].fillna(df['name_len'].median())
-    df['name_len_clean'] = df['name_len_clean'].fillna(df['name_len_clean'].median())
+    df.category = df.category.fillna('Missing')
+    df.name_len = df.name_len.fillna(df.name_len.median())
+    df.name_len_clean = df.name_len_clean.fillna(df.name_len_clean.median())
     
     # Cyclic date features
     for col, max_val in [('launched_at_month', 12), ('launched_at_hr', 24), ('deadline_month', 12), ('deadline_hr', 24)]:
@@ -59,7 +59,7 @@ def main():
     feature_cols = [c for c in train_eng.columns if c not in drop_cols]
     
     X_train = train_eng[feature_cols]
-    y_train = train_eng['state_ind']
+    y_train = train_eng.state_ind
     X_test = test_eng[feature_cols]
     
     cat_cols = ['country', 'currency', 'category', 'deadline_weekday', 'created_at_weekday', 'launched_at_weekday']
@@ -92,7 +92,7 @@ def main():
     preds = (probs >= threshold).astype(int)
     
     output_df = pd.DataFrame({
-        'id': test_df['id'],
+        'id': test_df.id,
         'state_ind_pred': preds
     })
     
@@ -100,7 +100,7 @@ def main():
     output_df.to_csv(output_csv, index=False)
     print(f"Predictions saved to {output_csv}")
     print("Distribution of predictions:")
-    print(output_df['state_ind_pred'].value_counts())
+    print(output_df.state_ind_pred.value_counts())
 
     # Create Excel file
     wb = openpyxl.Workbook()
