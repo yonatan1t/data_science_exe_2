@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.tree import DecisionTreeClassifier
 import openpyxl
 
@@ -22,6 +23,7 @@ def engineer_features(df):
     
     df['goal_usd_per_day'] = df.goal_usd / df.launch_to_deadline_days_clean
     df['log_goal_usd_per_day'] = np.log1p(df.goal_usd_per_day)
+    df['prep_ratio'] = df['create_to_launch_days_clean'] / (df['launch_to_deadline_days_clean'] + 1)
     
     # Staff pick
     df.staff_pick = df.staff_pick.astype(int)
@@ -39,6 +41,11 @@ def engineer_features(df):
     df.name_len = df.name_len.fillna(df.name_len.median())
     df.name_len_clean = df.name_len_clean.fillna(df.name_len_clean.median())
     
+    # Category goal ratio
+    cat_medians = df.groupby('category')['goal_usd'].transform('median')
+    df['goal_to_cat_median'] = df['goal_usd'] / (cat_medians + 1.0)
+    df['log_goal_to_cat_median'] = np.log1p(np.maximum(df['goal_to_cat_median'], 0))
+    
     # Cyclic date features
     for col, max_val in [('launched_at_month', 12), ('launched_at_hr', 24), ('deadline_month', 12), ('deadline_hr', 24)]:
         df[f'{col}_sin'] = np.sin(2 * np.pi * getattr(df, col) / max_val)
@@ -55,7 +62,7 @@ def main():
     train_eng = engineer_features(train_df)
     test_eng = engineer_features(test_df)
     
-    drop_cols = ['id', 'name', 'slug', 'source_url', 'state_ind', 'name_str']
+    drop_cols = ['id', 'name', 'slug', 'source_url', 'state_ind']
     feature_cols = [c for c in train_eng.columns if c not in drop_cols]
     
     X_train = train_eng[feature_cols]
@@ -63,7 +70,7 @@ def main():
     X_test = test_eng[feature_cols]
     
     cat_cols = ['country', 'currency', 'category', 'deadline_weekday', 'created_at_weekday', 'launched_at_weekday']
-    num_cols = [c for c in feature_cols if c not in cat_cols]
+    num_cols = [c for c in feature_cols if c not in cat_cols and c != 'name_str']
     
     preprocessor = ColumnTransformer(
         transformers=[
@@ -71,14 +78,15 @@ def main():
                 ('imputer', SimpleImputer(strategy='median')),
                 ('scaler', StandardScaler())
             ]), num_cols),
-            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)
+            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols),
+            ('text', TfidfVectorizer(max_features=100, stop_words='english'), 'name_str')
         ]
     )
     
     # Pipeline with tuned Decision Tree
     pipeline = Pipeline([
         ('prep', preprocessor),
-        ('model', DecisionTreeClassifier(max_depth=10, min_samples_leaf=20, random_state=42))
+        ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=10, criterion='entropy', random_state=42))
     ])
     
     print("Training Decision Tree model...")
@@ -88,7 +96,7 @@ def main():
     probs = pipeline.predict_proba(X_test)[:, 1]
     
     # Optimal threshold for F1 score determined via cross-validation
-    threshold = 0.34
+    threshold = 0.32
     preds = (probs >= threshold).astype(int)
     
     output_df = pd.DataFrame({
