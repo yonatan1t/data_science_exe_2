@@ -6,6 +6,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import f1_score
 import openpyxl
 
 def engineer_features(df):
@@ -83,20 +85,36 @@ def main():
         ]
     )
     
+    threshold = 0.32
+
+    # Calculate 5-Fold Stratified CV F1 Score
+    print("Evaluating 5-Fold Cross-Validation F1 score...")
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    oof_probs = np.zeros(len(y_train))
+    for train_idx, val_idx in skf.split(X_train, y_train):
+        X_tr, y_tr = X_train.iloc[train_idx], y_train.iloc[train_idx]
+        X_va = X_train.iloc[val_idx]
+        fold_pipe = Pipeline([
+            ('prep', preprocessor),
+            ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=10, criterion='entropy', random_state=42))
+        ])
+        fold_pipe.fit(X_tr, y_tr)
+        oof_probs[val_idx] = fold_pipe.predict_proba(X_va)[:, 1]
+    
+    cv_f1 = f1_score(y_train, (oof_probs >= threshold).astype(int))
+    print(f"Cross-Validation F1 Score (threshold={threshold}): {cv_f1:.4f}")
+    
     # Pipeline with tuned Decision Tree
     pipeline = Pipeline([
         ('prep', preprocessor),
         ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=10, criterion='entropy', random_state=42))
     ])
     
-    print("Training Decision Tree model...")
+    print("Training Decision Tree model on full training set...")
     pipeline.fit(X_train, y_train)
     
     print("Predicting on new_projects.csv...")
     probs = pipeline.predict_proba(X_test)[:, 1]
-    
-    # Optimal threshold for F1 score determined via cross-validation
-    threshold = 0.32
     preds = (probs >= threshold).astype(int)
     
     output_df = pd.DataFrame({
