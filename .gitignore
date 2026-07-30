@@ -1,0 +1,7 @@
+.venv/
+node_modules/
+*.Zone.Identifier
+*:Zone.Identifier
+.DS_Store
+__pycache__/
+*.pyc

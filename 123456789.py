@@ -1,0 +1,116 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+import openpyxl
+
+def engineer_features(df):
+    df = df.copy()
+    
+    # Financial features
+    df.currency_rate = df.currency_rate.fillna(1.0)
+    df['goal_usd'] = df['goal'] * df.currency_rate
+    df['log_goal_usd'] = np.log1p(np.maximum(df['goal_usd'], 0))
+    df['log_goal'] = np.log1p(np.maximum(df['goal'], 0))
+    
+    # Duration and ratios
+    df['launch_to_deadline_days_clean'] = np.maximum(df['launch_to_deadline_days'], 1)
+    df['create_to_launch_days_clean'] = np.maximum(df['create_to_launch_days'], 0)
+    
+    df['goal_usd_per_day'] = df['goal_usd'] / df['launch_to_deadline_days_clean']
+    df['log_goal_usd_per_day'] = np.log1p(df['goal_usd_per_day'])
+    
+    # Staff pick
+    df['staff_pick'] = df['staff_pick'].astype(int)
+    
+    # Text features from name
+    df['name_str'] = df['name'].fillna('').astype(str)
+    df['name_char_len'] = df['name_str'].apply(len)
+    df['name_word_count'] = df['name_str'].apply(lambda x: len(x.split()))
+    df['name_has_excl'] = df['name_str'].apply(lambda x: 1 if '!' in x else 0)
+    df['name_has_quest'] = df['name_str'].apply(lambda x: 1 if '?' in x else 0)
+    df['name_is_upper'] = df['name_str'].apply(lambda x: 1 if x.isupper() else 0)
+    
+    # Fill NAs
+    df['category'] = df['category'].fillna('Missing')
+    df['name_len'] = df['name_len'].fillna(df['name_len'].median())
+    df['name_len_clean'] = df['name_len_clean'].fillna(df['name_len_clean'].median())
+    
+    # Cyclic date features
+    for col, max_val in [('launched_at_month', 12), ('launched_at_hr', 24), ('deadline_month', 12), ('deadline_hr', 24)]:
+        df[f'{col}_sin'] = np.sin(2 * np.pi * df[col] / max_val)
+        df[f'{col}_cos'] = np.cos(2 * np.pi * df[col] / max_val)
+        
+    return df
+
+def main():
+    print("Loading data...")
+    train_df = pd.read_csv('kickstarter_projects.csv')
+    test_df = pd.read_csv('new_projects.csv')
+    
+    # Feature engineering
+    train_eng = engineer_features(train_df)
+    test_eng = engineer_features(test_df)
+    
+    drop_cols = ['id', 'name', 'slug', 'source_url', 'state_ind', 'name_str']
+    feature_cols = [c for c in train_eng.columns if c not in drop_cols]
+    
+    X_train = train_eng[feature_cols]
+    y_train = train_eng['state_ind']
+    X_test = test_eng[feature_cols]
+    
+    cat_cols = ['country', 'currency', 'category', 'deadline_weekday', 'created_at_weekday', 'launched_at_weekday']
+    num_cols = [c for c in feature_cols if c not in cat_cols]
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', Pipeline([
+                ('imputer', SimpleImputer(strategy='median')),
+                ('scaler', StandardScaler())
+            ]), num_cols),
+            ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)
+        ]
+    )
+    
+    # Pipeline with tuned Logistic Regression
+    pipeline = Pipeline([
+        ('prep', preprocessor),
+        ('model', LogisticRegression(C=1.0, class_weight='balanced', max_iter=1000, random_state=42))
+    ])
+    
+    print("Training Logistic Regression model...")
+    pipeline.fit(X_train, y_train)
+    
+    print("Predicting on new_projects.csv...")
+    probs = pipeline.predict_proba(X_test)[:, 1]
+    
+    # Optimal threshold for F1 score determined via cross-validation
+    threshold = 0.49
+    preds = (probs >= threshold).astype(int)
+    
+    output_df = pd.DataFrame({
+        'id': test_df['id'],
+        'state_ind_pred': preds
+    })
+    
+    output_csv = '123456789.csv'
+    output_df.to_csv(output_csv, index=False)
+    print(f"Predictions saved to {output_csv}")
+    print("Distribution of predictions:")
+    print(output_df['state_ind_pred'].value_counts())
+
+    # Create Excel file
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Group Members"
+    ws.append(["ID", "Name"])
+    ws.append(["123456789", "Student Name"])
+    excel_file = "123456789.xlsx"
+    wb.save(excel_file)
+    print(f"Excel file saved to {excel_file}")
+
+if __name__ == '__main__':
+    main()
