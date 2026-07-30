@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 import openpyxl
 
 def engineer_features(df):
@@ -41,8 +41,8 @@ def engineer_features(df):
     
     # Cyclic date features
     for col, max_val in [('launched_at_month', 12), ('launched_at_hr', 24), ('deadline_month', 12), ('deadline_hr', 24)]:
-        df[f'{col}_sin'] = np.sin(2 * np.pi * df[col] / max_val)
-        df[f'{col}_cos'] = np.cos(2 * np.pi * df[col] / max_val)
+        df[f'{col}_sin'] = np.sin(2 * np.pi * getattr(df, col) / max_val)
+        df[f'{col}_cos'] = np.cos(2 * np.pi * getattr(df, col) / max_val)
         
     return df
 
@@ -75,20 +75,20 @@ def main():
         ]
     )
     
-    # Pipeline with tuned Logistic Regression
+    # Pipeline with tuned Decision Tree
     pipeline = Pipeline([
         ('prep', preprocessor),
-        ('model', LogisticRegression(C=1.0, class_weight='balanced', max_iter=1000, random_state=42))
+        ('model', DecisionTreeClassifier(max_depth=10, min_samples_leaf=20, random_state=42))
     ])
     
-    print("Training Logistic Regression model...")
+    print("Training Decision Tree model...")
     pipeline.fit(X_train, y_train)
     
     print("Predicting on new_projects.csv...")
     probs = pipeline.predict_proba(X_test)[:, 1]
     
     # Optimal threshold for F1 score determined via cross-validation
-    threshold = 0.49
+    threshold = 0.34
     preds = (probs >= threshold).astype(int)
     
     output_df = pd.DataFrame({

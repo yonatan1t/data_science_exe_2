@@ -47,14 +47,14 @@ We evaluated candidate models using **5-Fold Stratified Cross-Validation** on th
 
 | Model | Hyperparameters / Setup | Default $F_1$ ($p=0.5$) | Best $F_1$ Score | Optimal Threshold ($p^*$) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Logistic Regression** | `C=1.0, class_weight='balanced'` | **0.6551** | **0.6551** | **0.49** |
-| **Logistic Regression** | `C=0.1, class_weight='balanced'` | 0.6542 | 0.6542 | 0.50 |
-| **Logistic Regression** | `C=10.0, class_weight='balanced'` | 0.6544 | 0.6544 | 0.50 |
-| **Logistic Regression** | `C=1.0, default weights` | 0.5999 | 0.6547 | 0.31 |
-| **Classification Tree** | `max_depth=8, min_samples_leaf=10` | 0.6121 | 0.6332 | 0.30 |
-| **Classification Tree** | `max_depth=12, min_samples_leaf=20` | 0.5791 | 0.6215 | 0.31 |
-| **K-Nearest Neighbors** | `k=51, weights='distance'` | 0.4678 | 0.6034 | 0.29 |
-| **K-Nearest Neighbors** | `k=25, weights='distance'` | 0.5141 | 0.5928 | 0.28 |
+| **Decision Tree** | `min_samples_leaf=20` | 0.5832 | **0.6346** | 0.34 |
+| **Decision Tree** | `max_depth=10` | 0.5791 | 0.6233 | 0.31 |
+| **Decision Tree** | `max_depth=5` | 0.6121 | 0.6141 | 0.35 |
+| **Decision Tree** | `max_depth=15` | 0.5536 | 0.5833 | 0.18 |
+| **K-Nearest Neighbors** | `k=51` | 0.4678 | 0.6113 | 0.28 |
+| **K-Nearest Neighbors** | `k=31` | 0.4857 | 0.6043 | 0.26 |
+| **K-Nearest Neighbors** | `k=15` | 0.5058 | 0.5920 | 0.27 |
+| **K-Nearest Neighbors** | `k=5` | 0.5141 | 0.5683 | 0.21 |
 
 ### Key Findings
 1. **Logistic Regression with Balanced Class Weights** outperformed Decision Trees and k-NN by a significant margin. The balanced class weight penalizes false negatives appropriately, helping the linear decision boundary align well with high $F_1$ performance.

@@ -1,0 +1,48 @@
+train_and_eval.py 
+--- Logistic Regression (default) ---
+Base F1 (t=0.5): 0.5999 (Prec: 0.6979, Rec: 0.5260)
+Best F1: 0.6514 at Threshold: 0.29
+
+--- Logistic Regression (C=0.1) ---
+Base F1 (t=0.5): 0.5964 (Prec: 0.7008, Rec: 0.5191)
+Best F1: 0.6502 at Threshold: 0.30
+
+--- Logistic Regression (C=10) ---
+Base F1 (t=0.5): 0.6000 (Prec: 0.6971, Rec: 0.5266)
+Best F1: 0.6511 at Threshold: 0.28
+
+--- Logistic Regression (class_weight=balanced) ---
+Base F1 (t=0.5): 0.6507 (Prec: 0.5735, Rec: 0.7521)
+Best F1: 0.6528 at Threshold: 0.47
+
+--- Decision Tree (max_depth=5) ---
+Base F1 (t=0.5): 0.6121 (Prec: 0.6345, Rec: 0.5912)
+Best F1: 0.6141 at Threshold: 0.35
+
+--- Decision Tree (max_depth=10) ---
+Base F1 (t=0.5): 0.5791 (Prec: 0.6356, Rec: 0.5318)
+Best F1: 0.6233 at Threshold: 0.31
+
+--- Decision Tree (max_depth=15) ---
+Base F1 (t=0.5): 0.5536 (Prec: 0.5651, Rec: 0.5426)
+Best F1: 0.5833 at Threshold: 0.18
+
+--- Decision Tree (min_samples_leaf=20) ---
+Base F1 (t=0.5): 0.5832 (Prec: 0.6642, Rec: 0.5198)
+Best F1: 0.6346 at Threshold: 0.34
+
+--- KNN (k=5) ---
+Base F1 (t=0.5): 0.5141 (Prec: 0.6303, Rec: 0.4340)
+Best F1: 0.5683 at Threshold: 0.21
+
+--- KNN (k=15) ---
+Base F1 (t=0.5): 0.5058 (Prec: 0.7101, Rec: 0.3928)
+Best F1: 0.5920 at Threshold: 0.27
+
+--- KNN (k=31) ---
+Base F1 (t=0.5): 0.4857 (Prec: 0.7455, Rec: 0.3602)
+Best F1: 0.6043 at Threshold: 0.26
+
+--- KNN (k=51) ---
+Base F1 (t=0.5): 0.4678 (Prec: 0.7571, Rec: 0.3385)
+Best F1: 0.6113 at Threshold: 0.28
