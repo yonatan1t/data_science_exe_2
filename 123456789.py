@@ -85,7 +85,7 @@ def main():
         ]
     )
     
-    threshold = 0.32
+    threshold = 0.30
 
     # Calculate 5-Fold Stratified CV F1 Score
     print("Evaluating 5-Fold Cross-Validation F1 score...")
@@ -96,7 +96,7 @@ def main():
         X_va = X_train.iloc[val_idx]
         fold_pipe = Pipeline([
             ('prep', preprocessor),
-            ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=10, criterion='entropy', random_state=42))
+            ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=5, criterion='entropy', ccp_alpha=0.002, random_state=42))
         ])
         fold_pipe.fit(X_tr, y_tr)
         oof_probs[val_idx] = fold_pipe.predict_proba(X_va)[:, 1]
@@ -107,7 +107,7 @@ def main():
     # Pipeline with tuned Decision Tree
     pipeline = Pipeline([
         ('prep', preprocessor),
-        ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=10, criterion='entropy', random_state=42))
+        ('model', DecisionTreeClassifier(max_depth=8, min_samples_leaf=5, criterion='entropy', ccp_alpha=0.002, random_state=42))
     ])
     
     print("Training Decision Tree model on full training set...")
